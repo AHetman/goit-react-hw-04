@@ -1,62 +1,73 @@
 import { useState, useEffect } from "react";
-import Description from "../Description/Description";
-import Feedback from "../Feedback/Feedback";
-import Notification from "../Notification/Notification";
-import Options from "../Options/Options";
+import fetchImages from "../../api/gallery";
+import SearchBar from "../SearchBar/SearchBar";
+import ImageGallery from "../ImageGallery/ImageGallery";
+import ErrorMessage from "../ErrrorMessage/ErrorMessage";
+import Loader from "../Loader/Loader";
+import LoadMoreBtn from "../LoadMoreBtn/LoadMoreBtn";
+import ImageModal from "../ImageModal/ImageModal";
 
 const App = () => {
-  const [click, setClick] = useState(() => {
-    const savedClick = JSON.parse(localStorage.getItem("saved-click"));
-    if (savedClick !== null) {
-      return savedClick;
-    }
-    return {
-      good: 0,
-      neutral: 0,
-      bad: 0,
-    };
-  });
+  const [photos, setPhotos] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+
+  const handleSubmit = (topic) => {
+    setQuery(topic);
+    setPage(1);
+    setPhotos([]);
+  };
+
+  const handleLoadMore = () => {
+    setPage(page + 1);
+  };
 
   useEffect(() => {
-    localStorage.setItem("saved-click", JSON.stringify(click));
-  }, [click]);
+    if (query === "") {
+      return;
+    }
+    async function getPhotos() {
+      try {
+        setError(false);
+        setIsLoading(true);
+        const image = await fetchImages({ query, page });
+        setPhotos((prevPhotos) => {
+          return [...prevPhotos, ...image];
+        });
+      } catch (error) {
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    }
 
-  const updateFeedback = (feedbackType) => {
-    setClick((clicks) => ({
-      ...clicks,
-      [feedbackType]: clicks[feedbackType] + 1,
-    }));
+    getPhotos();
+  }, [query, page]);
+
+  const openModal = (imageUrl) => {
+    setSelectedImage(imageUrl);
   };
 
-  const totalFeedback = click.good + click.neutral + click.bad;
-
-  const resetFunction = () => {
-    setClick({
-      good: 0,
-      neutral: 0,
-      bad: 0,
-    });
+  const closeModal = () => {
+    setSelectedImage(null);
   };
-
-  const positivePercent = Math.round((click.good / totalFeedback) * 100);
 
   return (
     <>
-      <Description />
-      <Options
-        updateFeedback={updateFeedback}
-        click={click}
-        resetFunction={resetFunction}
-        totalFeedback={totalFeedback}
-      />
-      {totalFeedback > 0 ? (
-        <Feedback
-          click={click}
-          totalFeedback={totalFeedback}
-          positivePercent={positivePercent}
-        />
-      ) : (
-        <Notification />
+      <SearchBar onSubmit={handleSubmit} />
+      {error && <ErrorMessage />}
+      {photos.length > 0 && (
+        <ImageGallery images={photos} onImageClick={openModal} />
+      )}
+      {isLoading && <Loader />}
+      {photos.length > 9 && !isLoading && (
+        <LoadMoreBtn onClick={handleLoadMore} />
+      )}
+      {selectedImage && (
+        <ImageModal imageUrl={selectedImage} closeModal={closeModal} />
       )}
     </>
   );
