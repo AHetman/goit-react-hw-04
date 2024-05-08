@@ -1,4 +1,5 @@
 import css from "./SearchBar.module.css";
+import toast, { Toaster } from "react-hot-toast";
 
 const SearchBar = ({ onSubmit }) => {
   const handleSubmit = (evt) => {
@@ -6,7 +7,7 @@ const SearchBar = ({ onSubmit }) => {
     const form = evt.target;
     const topic = form.elements.topic.value;
     if (form.elements.topic.value.trim() === "") {
-      alert("Please enter search term!");
+      toast.error("Please enter search term!");
       return;
     }
     onSubmit(topic);
@@ -27,6 +28,17 @@ const SearchBar = ({ onSubmit }) => {
         <button type="submit" className={css.searchBarBtn}>
           Search
         </button>
+        <Toaster
+          position="top-center"
+          closeOnClick={true}
+          reverseOrder={false}
+          toastOptions={{
+            style: {
+              marginTop: "100px",
+              color: "red",
+            },
+          }}
+        />
       </form>
     </header>
   );
